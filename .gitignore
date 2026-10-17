@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+.DS_Store
+
+# Dokumen hasil generate untuk proyek lokal, bukan bagian dari server
+/docs/
+probe.mts

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.jpg" alt="starter-doc-mcp Banner" width="100%" />
+</p>
+
 # starter-doc-mcp
 
 [![CI](https://github.com/zifaucode/starter-doc-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/zifaucode/starter-doc-mcp/actions/workflows/ci.yml)

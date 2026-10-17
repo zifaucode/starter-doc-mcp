@@ -102,13 +102,13 @@ Satu paket lengkap:
 Pakai starter-doc-mcp, buat blueprint untuk "Tagihan Freelancer".
 Deskripsi: aplikasi pencatat dan pengirim invoice untuk freelancer.
 Fitur utama: buat invoice, kirim invoice lewat email, tandai lunas.
-Mode lite, simpan ke docs/blueprint.
+Mode lite, simpan ke D:\proyek\freelance\docs.
 ```
 
 Satu dokumen saja:
 
 ```
-Pakai starter-doc-mcp, buat SRS saja untuk proyek ini, simpan ke docs/SRS.md.
+Pakai starter-doc-mcp, buat SRS saja untuk proyek ini, simpan ke D:\proyek\freelance\docs\SRS.md.
 ```
 
 Audit:
@@ -121,12 +121,34 @@ Jika tool tidak terpanggil, sebut namanya: "pakai tool `generate_full_blueprint`
 
 Saran alur kerja:
 
-1. Panggil `generate_full_blueprint` dengan `outputDir`. Balasannya pendek dan memuat daftar **Still to supply**, yaitu hal yang masih harus kamu isi.
+1. Panggil `generate_full_blueprint` dengan `outputDir` berisi path folder proyekmu. Balasannya pendek dan memuat daftar **Still to supply**, yaitu hal yang masih harus kamu isi.
 2. Lengkapi daftar itu, lalu panggil ulang.
 3. Jalankan `audit_spec_completeness` pada dokumen yang penting.
 4. Minta agen coding membaca `00_AGENT_INSTRUCTIONS.md` lebih dulu.
 
-`outputDir` dan `outputPath` dihitung dari folder kerja server. Untuk menyimpan di tempat tertentu, tulis path lengkapnya.
+## Di mana file disimpan
+
+Server ini berjalan sebagai proses terpisah dari proyekmu, jadi ia perlu tahu folder tujuannya. Dokumen **tidak** disimpan di folder `starter-doc-mcp`.
+
+Cara paling aman: sebut folder proyekmu saat meminta.
+
+```
+Pakai starter-doc-mcp, buat blueprint untuk proyek freelance ini.
+Simpan ke D:\proyek\freelance\docs
+```
+
+Aturannya:
+
+| Kamu menulis | Hasilnya |
+| :--- | :--- |
+| Path lengkap (`D:\proyek\freelance\docs`) | Disimpan persis di situ. |
+| Path relatif (`docs`) | Dihitung dari folder proyek yang dilaporkan editor. Jika editor tidak melaporkannya, dari folder kerja server, yang belum tentu folder proyekmu. |
+| Folder di dalam `starter-doc-mcp` | Ditolak dengan pesan yang menjelaskan alasannya. |
+| Tidak menyebut folder | Tidak ada yang disimpan. Asisten diminta bertanya dulu. |
+
+Setelah menyimpan, balasan selalu memuat lokasi lengkap (`Folder:` atau `Full path:`) dan asisten diminta menyampaikannya kepadamu. Jika ragu file-nya ada di mana, tanyakan: "tadi disimpan di path lengkap yang mana?"
+
+Jika editor-mu membuka folder proyek (Zed, Cursor, Claude Code), path relatif seperti `docs` biasanya mendarat di folder itu. Tulis path lengkap kalau kamu ingin pasti.
 
 ## Tool yang tersedia
 

@@ -2,6 +2,16 @@
 
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikuti [SemVer](https://semver.org/).
 
+## [1.1.1]
+
+### Diubah
+- Path relatif pada `outputDir`, `outputPath`, dan `filePath` dihitung dari folder proyek yang dilaporkan editor (MCP roots). Jika editor tidak melaporkannya, dari folder kerja server.
+- Balasan setelah menyimpan memuat lokasi lengkap, dan asisten diminta menyampaikannya kepada pengguna.
+- Deskripsi parameter menyuruh asisten bertanya folder proyek bila pengguna belum menyebutnya.
+
+### Ditambahkan
+- Penyimpanan ke dalam folder instalasi `starter-doc-mcp` ditolak dengan pesan yang jelas.
+
 ## [1.1.0]
 
 ### Ditambahkan

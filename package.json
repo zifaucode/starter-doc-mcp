@@ -1,6 +1,6 @@
 {
   "name": "starter-doc-mcp",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "MCP server that generates PRD, SRS, ERD, SDD, DESIGN, traceability matrix, and agent instructions as Markdown, so coding agents build from written specs instead of guessing.",
   "type": "module",
   "main": "./dist/index.js",
@@ -26,7 +26,7 @@
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "prepare": "npm run build",
-    "test": "tsx --test tests/suite.test.ts tests/fileWriter.test.ts"
+    "test": "tsx --test tests/suite.test.ts tests/fileWriter.test.ts tests/paths.test.ts"
   },
   "keywords": [
     "mcp",

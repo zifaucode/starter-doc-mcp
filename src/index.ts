@@ -13,6 +13,19 @@ import { generateDesignSpec } from "./templates/design.js";
 import { auditMarkdownSpec } from "./engine/auditor.js";
 import { BLUEPRINT_PRESETS } from "./templates/presets.js";
 import { BlueprintProject } from "./types/blueprint.js";
+import { resolveUserPath as resolvePath } from "./utils/paths.js";
+import { fileURLToPath } from "node:url";
+
+async function workspaceRoot(): Promise<string | undefined> {
+  try {
+    const { roots } = await server.server.listRoots(undefined, { timeout: 3000 });
+    const uri = roots[0]?.uri;
+    return uri && uri.startsWith("file:") ? fileURLToPath(uri) : undefined;
+  } catch {
+    return undefined; // client does not report roots
+  }
+}
+const resolveUserPath = (p: string) => resolvePath(p, workspaceRoot);
 
 const server = new McpServer({
   name: "starter-doc-mcp",
@@ -128,7 +141,7 @@ server.tool(
     targetAudience: z.array(z.string()).optional().describe("Target user personas and operators"),
     problemStatement: z.string().optional().describe("Exact problem space and pain points being solved"),
     outOfScope: z.array(z.string()).optional().describe("Strict out-of-scope boundaries to prevent AI agent scope creep"),
-    outputDir: z.string().optional().describe("Directory to save the .md files (e.g. docs/blueprint). Preferred: the reply stays short and you read only the files you need."),
+    outputDir: z.string().optional().describe("Folder to save the 7 .md files, for example D:\\\\projects\\\\my-app\\\\docs. Preferred: the reply stays short. Relative paths are resolved from the workspace root the editor reports, otherwise from the server's working directory, which may not be the user's project. Prefer the full path of the user's project folder. If the user has not said where the project is, ask before calling. Folders inside the starter-doc-mcp install are rejected."),
     detail: DetailSchema,
     includeContent: z.boolean().optional().describe("Only when outputDir is omitted: return all 7 documents in the reply (large, about 12k tokens). Default false."),
     techStack: TechStackSchema.optional(),
@@ -140,7 +153,10 @@ server.tool(
   },
   async (args) => {
     try {
-      const result = await generateFullBlueprintSuite(args as unknown as Partial<BlueprintProject>);
+      const result = await generateFullBlueprintSuite({
+        ...(args as unknown as Partial<BlueprintProject>),
+        outputDir: args.outputDir ? await resolveUserPath(args.outputDir) : undefined
+      });
 
       let responseText = `# Blueprint Suite Generation Completed Successfully!
 ## Project: ${result.summary.projectName}
@@ -155,7 +171,7 @@ server.tool(
 `;
 
       if (result.writtenFiles && result.writtenFiles.length > 0) {
-        responseText += `### Files Written to Disk:\n`;
+        responseText += `### Files Written to Disk:\nFolder: \`${path.dirname(result.writtenFiles[0].filePath)}\`. Tell the user this exact location.\n\n`;
         for (const file of result.writtenFiles) {
           responseText += `* **[${file.fileName}](file:///${file.filePath.replace(/\\/g, "/")})** (${file.bytes} bytes)\n`;
         }
@@ -203,7 +219,7 @@ server.tool(
     keyFeatures: z.array(FeatureSchema).optional(),
     templatePreset: z.enum(["saas-b2b", "ecommerce", "ai-agent-platform"]).optional(),
     detail: DetailSchema,
-    outputPath: z.string().optional().describe("Optional file path to write PRD.md (e.g. docs/PRD.md)")
+    outputPath: z.string().optional().describe("File to write PRD.md to. Relative paths are resolved from the workspace root the editor reports, otherwise from the server's working directory, which may not be the user's project. Prefer the full path of the user's project folder. If the user has not said where the project is, ask before calling. Folders inside the starter-doc-mcp install are rejected.")
   },
   async (args) => {
     try {
@@ -211,13 +227,13 @@ server.tool(
       const markdown = generatePrd(project);
 
       if (args.outputPath) {
-        const fullPath = path.resolve(args.outputPath);
+        const fullPath = await resolveUserPath(args.outputPath);
         await fs.mkdir(path.dirname(fullPath), { recursive: true });
         await fs.writeFile(fullPath, markdown, "utf-8");
         return {
           content: [{
             type: "text",
-            text: `Successfully wrote PRD to [${path.basename(fullPath)}](file:///${fullPath.replace(/\\/g, "/")}) (${Buffer.byteLength(markdown, "utf-8")} bytes).`
+            text: `Successfully wrote PRD to [${path.basename(fullPath)}](file:///${fullPath.replace(/\\/g, "/")}) (${Buffer.byteLength(markdown, "utf-8")} bytes).\nFull path: \`${fullPath}\`. Tell the user this exact location.`
           }]
         };
       }
@@ -247,7 +263,7 @@ server.tool(
     techStack: TechStackSchema.optional(),
     nfr: NfrSchema.optional(),
     detail: DetailSchema,
-    outputPath: z.string().optional().describe("Optional file path to write SRS.md")
+    outputPath: z.string().optional().describe("File to write SRS.md to. Relative paths are resolved from the workspace root the editor reports, otherwise from the server's working directory, which may not be the user's project. Prefer the full path of the user's project folder. If the user has not said where the project is, ask before calling. Folders inside the starter-doc-mcp install are rejected.")
   },
   async (args) => {
     try {
@@ -255,13 +271,13 @@ server.tool(
       const markdown = generateSrs(project);
 
       if (args.outputPath) {
-        const fullPath = path.resolve(args.outputPath);
+        const fullPath = await resolveUserPath(args.outputPath);
         await fs.mkdir(path.dirname(fullPath), { recursive: true });
         await fs.writeFile(fullPath, markdown, "utf-8");
         return {
           content: [{
             type: "text",
-            text: `Successfully wrote SRS to [${path.basename(fullPath)}](file:///${fullPath.replace(/\\/g, "/")}) (${Buffer.byteLength(markdown, "utf-8")} bytes).`
+            text: `Successfully wrote SRS to [${path.basename(fullPath)}](file:///${fullPath.replace(/\\/g, "/")}) (${Buffer.byteLength(markdown, "utf-8")} bytes).\nFull path: \`${fullPath}\`. Tell the user this exact location.`
           }]
         };
       }
@@ -289,7 +305,7 @@ server.tool(
     templatePreset: z.enum(["saas-b2b", "ecommerce", "ai-agent-platform"]).optional(),
     entities: z.array(EntitySchema).optional(),
     detail: DetailSchema,
-    outputPath: z.string().optional().describe("Optional file path to write ERD.md")
+    outputPath: z.string().optional().describe("File to write ERD.md to. Relative paths are resolved from the workspace root the editor reports, otherwise from the server's working directory, which may not be the user's project. Prefer the full path of the user's project folder. If the user has not said where the project is, ask before calling. Folders inside the starter-doc-mcp install are rejected.")
   },
   async (args) => {
     try {
@@ -304,13 +320,13 @@ server.tool(
       const markdown = generateErd(project);
 
       if (args.outputPath) {
-        const fullPath = path.resolve(args.outputPath);
+        const fullPath = await resolveUserPath(args.outputPath);
         await fs.mkdir(path.dirname(fullPath), { recursive: true });
         await fs.writeFile(fullPath, markdown, "utf-8");
         return {
           content: [{
             type: "text",
-            text: `Successfully wrote ERD to [${path.basename(fullPath)}](file:///${fullPath.replace(/\\/g, "/")}) (${Buffer.byteLength(markdown, "utf-8")} bytes).`
+            text: `Successfully wrote ERD to [${path.basename(fullPath)}](file:///${fullPath.replace(/\\/g, "/")}) (${Buffer.byteLength(markdown, "utf-8")} bytes).\nFull path: \`${fullPath}\`. Tell the user this exact location.`
           }]
         };
       }
@@ -338,7 +354,7 @@ server.tool(
     techStack: TechStackSchema.optional(),
     apiEndpoints: z.array(ApiEndpointSchema).optional(),
     detail: DetailSchema,
-    outputPath: z.string().optional().describe("Optional file path to write SDD.md")
+    outputPath: z.string().optional().describe("File to write SDD.md to. Relative paths are resolved from the workspace root the editor reports, otherwise from the server's working directory, which may not be the user's project. Prefer the full path of the user's project folder. If the user has not said where the project is, ask before calling. Folders inside the starter-doc-mcp install are rejected.")
   },
   async (args) => {
     try {
@@ -346,13 +362,13 @@ server.tool(
       const markdown = generateSdd(project);
 
       if (args.outputPath) {
-        const fullPath = path.resolve(args.outputPath);
+        const fullPath = await resolveUserPath(args.outputPath);
         await fs.mkdir(path.dirname(fullPath), { recursive: true });
         await fs.writeFile(fullPath, markdown, "utf-8");
         return {
           content: [{
             type: "text",
-            text: `Successfully wrote SDD to [${path.basename(fullPath)}](file:///${fullPath.replace(/\\/g, "/")}) (${Buffer.byteLength(markdown, "utf-8")} bytes).`
+            text: `Successfully wrote SDD to [${path.basename(fullPath)}](file:///${fullPath.replace(/\\/g, "/")}) (${Buffer.byteLength(markdown, "utf-8")} bytes).\nFull path: \`${fullPath}\`. Tell the user this exact location.`
           }]
         };
       }
@@ -378,7 +394,7 @@ server.tool(
     templatePreset: z.enum(["saas-b2b", "ecommerce", "ai-agent-platform"]).optional(),
     uiScreens: z.array(UiScreenSchema).optional(),
     detail: DetailSchema,
-    outputPath: z.string().optional().describe("Optional file path to write DESIGN.md")
+    outputPath: z.string().optional().describe("File to write DESIGN.md to. Relative paths are resolved from the workspace root the editor reports, otherwise from the server's working directory, which may not be the user's project. Prefer the full path of the user's project folder. If the user has not said where the project is, ask before calling. Folders inside the starter-doc-mcp install are rejected.")
   },
   async (args) => {
     try {
@@ -386,13 +402,13 @@ server.tool(
       const markdown = generateDesignSpec(project);
 
       if (args.outputPath) {
-        const fullPath = path.resolve(args.outputPath);
+        const fullPath = await resolveUserPath(args.outputPath);
         await fs.mkdir(path.dirname(fullPath), { recursive: true });
         await fs.writeFile(fullPath, markdown, "utf-8");
         return {
           content: [{
             type: "text",
-            text: `Successfully wrote Design Spec to [${path.basename(fullPath)}](file:///${fullPath.replace(/\\/g, "/")}) (${Buffer.byteLength(markdown, "utf-8")} bytes).`
+            text: `Successfully wrote Design Spec to [${path.basename(fullPath)}](file:///${fullPath.replace(/\\/g, "/")}) (${Buffer.byteLength(markdown, "utf-8")} bytes).\nFull path: \`${fullPath}\`. Tell the user this exact location.`
           }]
         };
       }
@@ -421,7 +437,7 @@ server.tool(
     try {
       let textToAudit = content;
       if (!textToAudit && filePath) {
-        textToAudit = await fs.readFile(path.resolve(filePath), "utf-8");
+        textToAudit = await fs.readFile(await resolveUserPath(filePath), "utf-8");
       }
 
       if (!textToAudit) {
